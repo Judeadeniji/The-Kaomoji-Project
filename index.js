@@ -5,7 +5,7 @@ const axios = require("axios");
 const size = "512x512";
 const response_format = "url";
 const description =
-  "a ANSCII text art of a cute cat with a smile wearing a party hat and holding a slice of pizza";
+  "any random human reactions";
 const model_engine = "image-alpha-001";
 const num_outputs = 5;
 
@@ -15,7 +15,7 @@ const generateKaomoji = async () => {
       "https://api.openai.com/v1/images/generations",
       {
         model: model_engine,
-        prompt: `Generate an illustrative Kaomoji text art for "${description}"`,
+        prompt: ` "${'Kaomoji'}"`,
         size: size,
         response_format: response_format,
       },
@@ -30,9 +30,7 @@ const generateKaomoji = async () => {
     const results = await Promise.all(
       response.data.data.map(async (data, index) => {
         const image_url = data.url;
-        console.log(`Image ${index + 1}: ${image_url}`);
-
-        const filename = `kaomoji-${Math.random() * 6}.png`;
+        const filename = `kaomoji-${Math.ceil(Math.random() * 1024*32)}-65.png`;
         const filepath = "./generated/" + filename;
 
         const image_response = await axios({
@@ -44,8 +42,7 @@ const generateKaomoji = async () => {
         image_response.data.pipe(fs.createWriteStream(filepath));
         console.log(`Image saved as ${filepath}`);
 
-        const kaomoji_text = response.data.choices[index].text.trim();
-        return { image_url, kaomoji_text };
+        return { filename};
       })
     );
 
@@ -55,4 +52,6 @@ const generateKaomoji = async () => {
   }
 };
 
-generateKaomoji();
+for (let i = 0; i < num_outputs; i++) {
+  generateKaomoji();
+}
