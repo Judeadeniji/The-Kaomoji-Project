@@ -1,8 +1,6 @@
 require("dotenv").config();
 const fs = require("fs");
 const axios = require("axios");
-const temperature = 0.8;
-const max_tokens = 100;
 
 const size = "512x512";
 const response_format = "url";
@@ -11,45 +9,50 @@ const description =
 const model_engine = "image-alpha-001";
 const num_outputs = 5;
 
-axios
-  .post(
-    "https://api.openai.com/v1/images/generations",
-    {
-      model: model_engine,
-      prompt: `Generate an illustrative Kaomoji text art for "${description}"`,
-      size: size,
-      response_format: response_format,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + process.env.OPENAI_API_KEY,
+const generateKaomoji = async () => {
+  try {
+    const response = await axios.post(
+      "https://api.openai.com/v1/images/generations",
+      {
+        model: model_engine,
+        prompt: `Generate an illustrative Kaomoji text art for "${description}"`,
+        size: size,
+        response_format: response_format,
       },
-    }
-  )
-  .then((response) => {
-    for (let i = 0; i < response.data.data .length; i++) {
-      const image_url = response.data.data[i].url;
-      console.log(`Image ${i + 1}: ${image_url}`);
-      const filename = `kaomoji-${Math.random() * 6}.png`;
-      const filepath = "./generated/" + filename;
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + process.env.OPENAI_API_KEY,
+        },
+      }
+    );
 
-     axios({
-        method: "get",
-        url: image_url,
-        responseType: "stream",
-      })
-        .then(function (response) {
-          response.data.pipe(fs.createWriteStream(filepath));
-        /*  const kaomoji_text = response.data.choices[0].text.trim();
-          console.log(kaomoji_text); */
-          console.log(`Image saved as ${filepath}`);
-        })
-        .catch(function (error) {
-          console.error(error);
+    const results = await Promise.all(
+      response.data.data.map(async (data, index) => {
+        const image_url = data.url;
+        console.log(`Image ${index + 1}: ${image_url}`);
+
+        const filename = `kaomoji-${Math.random() * 6}.png`;
+        const filepath = "./generated/" + filename;
+
+        const image_response = await axios({
+          method: "get",
+          url: image_url,
+          responseType: "stream",
         });
 
-      const kaomoji_text = response.data;
-      console.log(`Text Art ${i + 1}: ${JSON.stringify(kaomoji_text)}`);
-    }
-  });
+        image_response.data.pipe(fs.createWriteStream(filepath));
+        console.log(`Image saved as ${filepath}`);
+
+        const kaomoji_text = response.data.choices[index].text.trim();
+        return { image_url, kaomoji_text };
+      })
+    );
+
+    console.log("Results:", results);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+generateKaomoji();
